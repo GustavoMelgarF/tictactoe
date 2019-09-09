@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>3_en_raya</title>
+        <style>
+            .tablero{
+                width: 300px;
+                height: 300px;
+                margin: 0 auto;
+                background-color: #34495e;
+                color: #fff;
+                border: 6px solid #2c3e50;
+                border-radius: 10px;      
+                display: grid;
+                grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+            }
+
+            .box{
+                border: 6px solid #2c3e50;
+                border-radius: 2px;
+                font-family: Helvetica;
+                font-weight: bold;
+                font-size: 4em;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                cursor: pointer;
+            }
+
+            .mensaje{
+                margin-top: 2em;
+                font-family:Verdana, Geneva, Tahoma, sans-serif;
+                font-size: 2em;
+                color: #666;
+                padding: .5em;
+                border: .5em solid #34495e;
+                border-radius: 5px;
+                min-width: 50%;
+            }
+
+            .juego{
+                margin-top: 1em;
+                font-family:Verdana, Geneva, Tahoma, sans-serif;
+                font-size: 2em;
+                color: #34495e;
+            }
+
+            .seleccion_oponente{
+                margin-top: 2em;
+                font-family:Verdana, Geneva, Tahoma, sans-serif;
+                font-size: 2em;
+                color: #666;
+                padding: .5em;
+            }
+
+            .boton{
+                margin-top: .3em;
+                font-family:Verdana, Geneva, Tahoma, sans-serif;
+                color: #666;
+                padding: .5em;
+                border: .2em solid #34495e;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+            
+            .boton:hover{
+                background-color: #34495e;
+                color: white;
+            }
+            
+
+            .contenedor{
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                
+            }
+
+            .modal{
+                position: absolute;
+                left: 0;
+                top: 0;
+                background-color: #2c3e5040;
+                height: 100%;
+                width: 100%;
+                z-index: 10000;
+            }
+
+            .seleccion_oponente{
+                position: absolute;
+                margin: 0;
+                padding: 0;
+                top: 5em;
+                left: 0;
+                z-index: 20000;
+                background-color: white;
+                width: 100vw;
+                padding-top: 1em;
+                padding-bottom: 1em;
+            }
+            .contenido{
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            
+        </style>
+    </head>
+    <body>
+        <div class="modal"></div>
+        
+        <div class="contenedor">
+            <span class="juego">
+                <h3>3 EN RAYA</h3>
+            </span>
+            <div class="default tablero">
+                <div class="box" id="C1"> </div>
+                <div class="box" id="C2"> </div>
+                <div class="box" id="C3"> </div>
+                <div class="box" id="C4"> </div>
+                <div class="box" id="C5"> </div>
+                <div class="box" id="C6"> </div>
+                <div class="box" id="C7"> </div>
+                <div class="box" id="C8"> </div>
+                <div class="box" id="C9"> </div>
+            </div>
+            <div class="default mensaje">
+            </div>
+        </div>
+        <div class="seleccion_oponente">
+            <div class="contenido">
+                <span class="selecciona">Selecciona oponente:</span>
+                <span class="boton ia">MÁQUINA (Tú juegas con las X)</span>
+                <span class="boton otro">OTRO JUGADOR</span>
+            </div>
+        </div>
+    </body>
+    <script>
+
+        const textoInicio = "¿Quieres jugar otra partida al 3 en raya?";
+        const textoFin = "Fin de la partida";
+        const textoFinJuego = "Fin del juego";
+        const textoGanaJugador = "¡Ganó el jugador!";
+        const textoGanaMaquina = "¡Ganó la máquina!";
+        const textoGanaJugadorX = "¡Ganó el jugador de las X!";
+        const textoGanaJugadorO = "¡Ganó el jugador de las 0!";
+        const textoTurnoJugador = "Te toca poner ficha";
+        const textoTurnoJugador1 = "Turno del jugador de las X";
+        const textoTurnoJugador2 = "Turno del jugador de las 0";
+        const textoExcepcion = "Error en la aplicación. Revisa parámetros configuración";
+        const textoPensando = " ";
+        const AZAR = [1, 2];
+        const JUGADOR = 1, MAQUINA = 2;
+        const tablero = document.querySelector('.tablero');
+        const modal = document.querySelector('.modal');
+        const seleccion = document.querySelector('.seleccion_oponente');
+        const boton_ia = document.querySelector('.ia');
+        const boton_otro = document.querySelector('.otro');
+        const mensaje = document.querySelector('.mensaje');
+
+        var casillaClick = 0;
+        var modoJuegoMaquina = false; 
+        var movimiento = 0;
+        var casillas = Array();
+        casillas['casilla1'] = document.querySelector('#C1');
+        casillas['casilla2'] = document.querySelector('#C2');
+        casillas['casilla3'] = document.querySelector('#C3');
+        casillas['casilla4'] = document.querySelector('#C4');
+        casillas['casilla5'] = document.querySelector('#C5');
+        casillas['casilla6'] = document.querySelector('#C6');
+        casillas['casilla7'] = document.querySelector('#C7');
+        casillas['casilla8'] = document.querySelector('#C8');
+        casillas['casilla9'] = document.querySelector('#C9');
+
+        
+        /**
+         * function escribirMensaje
+         * param: texto
+         * 
+         * escribe param en div con clase mensaje
+         */
+        function escribirMensaje(texto){
+            mensaje.innerHTML = texto;
+        }
+
+        /**
+         * function iniciar
+         * 
+         * vacía tablero, asigna eventos click y determina quién empieza a jugar (iniciativa)
+         */
+        function iniciar(){
+            for (let i = 1; i<10; i++){
+                casillas['casilla'+String(i)].innerHTML= ' ';
+            }
+
+            movimiento = 0;
+            inicilizarCasillas();
+            const numAzar = Math.floor(Math.random()*AZAR.length);
+            if (AZAR[numAzar]%2 == 0){
+                movimiento = JUGADOR;
+            }else{
+                movimiento = MAQUINA;
+            }
+            jugada();
+        }
+        
+        /**
+         * function jugada
+         * 
+         * determina acciones a realizar antes del click del jugador o la casilla que elige la máquina
+         * 
+         */
+        function jugada(){
+            switch (movimiento){
+                case MAQUINA:
+                    if (modoJuegoMaquina) {
+                        escribirMensaje(textoPensando);
+                        setTimeout(function () {
+                            mover();
+                        }, 100);
+                    }else{
+                        escribirMensaje(textoTurnoJugador2);  
+                    }
+                    break;
+                case JUGADOR:
+                    if (modoJuegoMaquina) {
+                        escribirMensaje(textoTurnoJugador);
+                    }else{
+                        escribirMensaje(textoTurnoJugador1); 
+                    }
+                    break;
+            }
+        }
+
+        /**
+         * function cambiarSentido
+         * 
+         * cambia el turno entre jugador y máquina
+         */
+        function cambiarSentido(){
+            movimiento = movimiento == MAQUINA ? JUGADOR : MAQUINA;
+            jugada();   
+        }
+
+        /**
+         * function inicilizarCasillas
+         * 
+         * asigna eventos click
+         * Cada click realiza:
+         * -pintar casilla
+         * -obtener casillas de tablero en formato para php
+         * -llamada ajax a php para gestionar movimiento
+         * 
+         */
+        function inicilizarCasillas(){
+            document.querySelectorAll('.box')
+                .forEach( elem => elem.addEventListener('click', 
+                    event => {
+                        if (modoJuegoMaquina) {
+                            if (elem.innerHTML == ' ' && movimiento == JUGADOR) {
+                                pintarCasilla(elem.id);
+                                obtenerTablero();
+                                mover();
+                            }
+                        }else{
+                            if (elem.innerHTML == ' ') {
+                                pintarCasilla(elem.id);
+                                obtenerTablero();
+                                mover();
+                            }
+                        }
+                    })
+                );
+        }
+
+        /**
+         * function pintarCasilla
+         * param: id de casilla
+         * 
+         * pinta una X en el div que representa la casilla
+         * 
+         */
+        function pintarCasilla(numCasilla){
+            if (movimiento == JUGADOR){
+                document.querySelector('#'+numCasilla).innerHTML = 'X';
+            }else{
+                document.querySelector('#'+numCasilla).innerHTML = '0';
+            }
+        }
+
+        /**
+         * function obtenerTablero
+         * 
+         * obtiene casillas de tablero en formato para php
+         * 
+         */
+        function obtenerTablero(){
+            let tablero = `'${casillas['casilla1'].innerHTML}','${casillas['casilla2'].innerHTML}','${casillas['casilla3'].innerHTML}','${casillas['casilla4'].innerHTML}','${casillas['casilla5'].innerHTML}','${casillas['casilla6'].innerHTML}','${casillas['casilla7'].innerHTML}','${casillas['casilla8'].innerHTML}','${casillas['casilla9'].innerHTML}'`;
+            tablero = tablero.replace(/X/g, 1);
+            tablero = tablero.replace(/0/g, 2);
+            return tablero.replace(/ /g, 0);
+        }
+
+        /**
+         * function pintarTablero
+         * param: objeto datos con formato php.
+         * 
+         * Descodifica datos, que viene en formato php, para pintarlo en las casillas
+         * 
+         */
+        function pintarTablero(datos){
+            let casillasLibres = Array();
+
+            for (let i = 1; i<10; i++){
+                valor = ' ';
+                if (datos['C'+String(i)] == 1){
+                    valor = 'X';
+                }else if (datos['C'+String(i)] == 2){
+                    valor = '0';
+                }else{
+                    casillasLibres.push(' ');
+                }
+                casillas['casilla'+String(i)].innerHTML= valor;
+            }
+
+            if (casillasLibres.length == 0){
+                comprobarGanador(1);
+                fin();
+            }else{
+                comprobarGanador();
+            }
+        }
+
+        /**
+         * function fin
+         * 
+         * fin de la partida
+         * movimiento 0 (ningun jugador)
+         * mover con valor 0 (ninguna acción posterior)
+         * 
+         */
+        function fin(){
+            movimiento = 0;
+            mover(0);
+            
+        }
+
+        /**
+         * function ocultarTablero
+         * 
+         * mostrar capa modal para seleccionar tipo de juego
+         * 
+         */
+        function ocultarTablero(){
+            modal.style.display = "block";
+            seleccion.style.display = "block";
+        }
+
+        /**
+         * function mostrarTablero
+         * 
+         * ocultar capa modal
+         * 
+         */
+        function mostrarTablero(){
+            modal.style.display = "none";
+            seleccion.style.display = "none";
+        }
+
+        /**
+         * function empezar
+         * 
+         * inicializo botones que seleccionan tipo de juego:
+         * Contra la máquina / Contra otro jugador
+         * 
+         */
+        function empezar(){
+            
+            boton_ia.addEventListener("click", (event) => {
+                movimiento = 0;
+                mover(2);
+                modoJuegoMaquina = true;
+                mostrarTablero();
+                iniciar();
+            });
+            boton_otro.addEventListener("click", (event) => {
+                movimiento = 0;
+                mover(2);
+                modoJuegoMaquina = false;
+                mostrarTablero();
+                iniciar();
+            });
+        }
+
+        /**
+         * function comprobarGanador
+         * async
+         * 
+         * llamada ajax a webservice para comprobar si hay ganador
+         * ganador == 1 (jugador) // ganador == 2 (maquina)
+         * llama a fin() para limipiar tablero
+         * 
+         */
+        async function comprobarGanador(modificador = 0){
+            const rawResponse = await fetch('./php/webservice.php', {
+                method: 'POST',
+                cache: "no-store",
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    'tablero': obtenerTablero(),
+                    'accion': 3
+                })
+            });
+            try{
+                const resp = await rawResponse.json();
+                let ganador = resp[0];
+                if (ganador == 1){
+                    escribirMensaje(' ');
+                    if (modoJuegoMaquina){
+                        alert(textoGanaJugador);
+                    }else{
+                        alert(textoGanaJugadorX);
+                    }
+                    if (modificador == 0){
+                        fin();
+                    }
+                }else if (ganador == 2){
+                    escribirMensaje(' ');
+                    if (modoJuegoMaquina){
+                        alert(textoGanaMaquina);
+                    }else{
+                        alert(textoGanaJugadorO);
+                    }
+                    if (modificador == 0){
+                        fin();
+                    }
+                }else{
+                    cambiarSentido();
+                }
+            }catch (Exception){
+                alert(textoExcepcion);
+            }
+        }
+        
+        /**
+         * function mover
+         * async
+         * param: modificador (1 = normal, 0 = sin acción posterior, fin, 2 = inicio partida)
+         * llamada ajax para registrar movimiento del jugador o provocar movimiento de la máquina
+         * 
+         */
+        async function mover(modificador = 1){
+            const rawResponse = await fetch('./php/webservice.php', {
+                method: 'POST',
+                cache: "no-store",
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    'tablero': obtenerTablero(),
+                    'accion': !modoJuegoMaquina? 1 : movimiento
+                })
+            });
+            try{
+                const resp = await rawResponse.json();
+                if (modificador == 1) {
+                    //llamada por defecto
+                    pintarTablero(resp);
+                }else if (modificador == 0){
+                    //fin partida. Pregunto por otra partida
+                    if (confirm(textoInicio)) {
+                        location.reload();
+                    }else{
+                        escribirMensaje(textoFinJuego);
+                        tablero.style.display = "none";
+                    }
+                }
+            }catch (Exception){
+                alert(textoExcepcion);
+            }
+            
+        }
+
+
+        //inicio script
+        ocultarTablero();
+        empezar();
+    </script>
+</html>
